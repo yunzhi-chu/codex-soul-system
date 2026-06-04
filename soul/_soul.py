@@ -92,7 +92,7 @@ class Soul:
                         id_state = reg.backend.read(identity_path, **kw)
                         if id_state and id_state.identity_summary:
                             state.identity_summary = id_state.identity_summary
-                        break
+                            break
                 except Exception:
                     pass
         return state
@@ -138,7 +138,7 @@ class Soul:
                         id_ctx = reg.backend.compress(identity_path, **kw)
                         if id_ctx.header:
                             ctx.header = id_ctx.header
-                        break
+                            break
                 except Exception:
                     pass
         return ctx

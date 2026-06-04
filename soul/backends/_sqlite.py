@@ -31,12 +31,13 @@ class SqliteBackend(SoulBackend):
     DB_FILENAME = ".soul.db"
 
     def __init__(self):
-        self._conns: dict[int, sqlite3.Connection] = {}
+        self._conns: dict[tuple[int, str], sqlite3.Connection] = {}
         self._lock = threading.Lock()
 
     def _get_db(self, path: str) -> sqlite3.Connection:
         tid = threading.get_ident()
-        if tid not in self._conns:
+        key = (tid, path)
+        if key not in self._conns:
             db_path = self._db_path(path)
             conn = sqlite3.connect(str(db_path), timeout=15)
             conn.row_factory = sqlite3.Row
@@ -45,12 +46,12 @@ class SqliteBackend(SoulBackend):
             conn.execute("PRAGMA busy_timeout=10000")
             with self._lock:
                 self._init_schema(conn)
-            self._conns[tid] = conn
-        return self._conns[tid]
+            self._conns[key] = conn
+        return self._conns[key]
 
     def close(self):
         with self._lock:
-            for tid, conn in list(self._conns.items()):
+            for key, conn in list(self._conns.items()):
                 try:
                     conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
                 except Exception:
