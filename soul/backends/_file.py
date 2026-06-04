@@ -1,4 +1,9 @@
-﻿from __future__ import annotations
+# SPDX-FileCopyrightText: 2024-present Codex Soul System Contributors
+# SPDX-License-Identifier: MIT
+
+"""File-based memory backend."""
+
+from __future__ import annotations
 import os, re
 from pathlib import Path
 from datetime import datetime

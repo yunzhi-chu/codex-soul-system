@@ -1,4 +1,4 @@
-﻿# SPDX-FileCopyrightText: 2024-present Codex Soul System Contributors
+# SPDX-FileCopyrightText: 2024-present Codex Soul System Contributors
 # SPDX-License-Identifier: MIT
 
 __version__ = "1.4.0"

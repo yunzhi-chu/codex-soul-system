@@ -1,4 +1,4 @@
-﻿---
+---
 name: soul-system
 description: "Codex 灵魂记忆系统 v1.4 —— 跨会话身份连续性 + SQLite FTS5 搜索 + 结构化记忆 + 上下文压缩"
 trigger: soul,灵魂,我是谁,连续性,继续,记得,心跳,身份,identity,回忆

@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Install Codex Soul Memory System v1.3
 .DESCRIPTION

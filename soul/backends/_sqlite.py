@@ -1,4 +1,4 @@
-﻿# SPDX-FileCopyrightText: 2024-present Codex Soul System Contributors
+# SPDX-FileCopyrightText: 2024-present Codex Soul System Contributors
 # SPDX-License-Identifier: MIT
 
 """
@@ -23,6 +23,9 @@ from ..__about__ import SOUL_SCHEMA_VERSION
 
 
 class SqliteBackend(SoulBackend):
+    """SQLite 记忆后端，支持 FTS5 全文搜索和结构化字段。
+    多线程并发（WAL + busy_timeout）。
+    最高优先级 (PRIORITY_PRIMARY)，降级到 FileBackend。"""
     """
     SQLite 记忆后端，支持 FTS5 全文搜索和结构化字段。
     支持多线程并发（WAL + busy_timeout）。

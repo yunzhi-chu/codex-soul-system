@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     灵魂记忆 CLI v1.3
 .DESCRIPTION

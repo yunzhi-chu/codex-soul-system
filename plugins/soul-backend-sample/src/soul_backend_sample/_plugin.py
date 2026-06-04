@@ -1,4 +1,4 @@
-﻿# SPDX-FileCopyrightText: 2024-present Codex Soul System Contributors
+# SPDX-FileCopyrightText: 2024-present Codex Soul System Contributors
 # SPDX-License-Identifier: MIT
 
 """Sample plugin: adds a JSON-based memory backend.

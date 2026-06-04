@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Soul Hook — 自动捕获会话上下文到灵魂记忆 v1.3
 .DESCRIPTION

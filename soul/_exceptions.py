@@ -1,4 +1,4 @@
-﻿"""Soul system error hierarchy — modeled after MarkItDown's exception design."""
+"""Soul system error hierarchy — modeled after MarkItDown's exception design."""
 
 
 class SoulException(Exception):
