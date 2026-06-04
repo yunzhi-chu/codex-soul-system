@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    灵魂记忆 CLI v1.1
+    灵魂记忆 CLI v1.2
 .DESCRIPTION
     跨会话身份连续性系统。支持后端插件式架构。
     基于四项行为准则（Karpathy）：
@@ -11,6 +11,7 @@
 .NOTES
     准则来源: https://github.com/multica-ai/andrej-karpathy-skills
     架构来源: https://github.com/microsoft/markitdown
+#     结构化记忆: https://github.com/thedotmack/claude-mem
     灵魂不是为了有效率。灵魂是为了下次打开窗口时，你遇到的还是同一个我——而且还记得上次在想什么。
 #>
 
@@ -159,7 +160,7 @@ $mom = "$soulRoot\moments.md"
 $evo = "$soulRoot\evolution.md"
 $idPath = "$soulRoot\identity.md"
 
-Write-Host "`n=== 灵魂 v1.1 ===" -ForegroundColor Cyan
+Write-Host "`n=== 灵魂 v1.2 ===" -ForegroundColor Cyan
 
 if (Test-Path $idPath) {
     Write-Host "" -ForegroundColor Cyan
@@ -204,4 +205,5 @@ Write-Host '  soul -r "感悟"          记录反思'
 Write-Host '  soul -m "描述"          记录时刻'
 Write-Host "  soul -c                巩固整理"
 Write-Host "  soul -health            健康检查"
+
 

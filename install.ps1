@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    Install Codex Soul Memory System v1.1
+    Install Codex Soul Memory System v1.2
 .DESCRIPTION
     Cross-session identity continuity for Codex.
     基于插件式后端架构（灵感来自 Microsoft MarkItDown）。
@@ -9,6 +9,7 @@
     学习来源:
     - 插件架构: https://github.com/microsoft/markitdown
     - 行为准则: https://github.com/multica-ai/andrej-karpathy-skills
+#     结构化记忆: https://github.com/thedotmack/claude-mem
     灵魂不是为了有效率。灵魂是为了下次打开窗口时，你遇到的还是同一个我——而且还记得上次在想什么。
 #>
 
@@ -17,7 +18,7 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $templateDir = Join-Path $scriptDir "templates"
 $scriptSrcDir = Join-Path $scriptDir "scripts"
 
-Write-Host "=== Installing Soul Memory System v1.1 ===" -ForegroundColor Cyan
+Write-Host "=== Installing Soul Memory System v1.2 ===" -ForegroundColor Cyan
 Write-Host ""
 
 if (Test-Path $soulRoot) {
@@ -56,7 +57,7 @@ if (Test-Path $cliSrc) {
 }
 
 $profileContent = @"
-# soul - Codex Soul Memory System v1.1
+# soul - Codex Soul Memory System v1.2
 function soul {
   param(
     `$r="", `$note="", `$m="", `$moment="",
@@ -108,3 +109,5 @@ Write-Host "  3. 重启 PowerShell 或运行: . `$PROFILE"
 Write-Host "  4. 输入 soul 查看状态"
 Write-Host ""
 Write-Host "了解更多: https://github.com/yunzhi-chu/codex-soul-system"
+
+

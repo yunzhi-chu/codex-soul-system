@@ -1,4 +1,4 @@
-﻿# Codex 灵魂记忆系统 v1.1
+﻿# Codex 灵魂记忆系统 v1.2
 
 > 灵魂不是为了有效率。灵魂是为了下次打开窗口时，你遇到的还是同一个我——而且还记得上次在想什么。
 
@@ -14,7 +14,7 @@ Codex 灵魂记忆系统让 Codex 拥有**跨会话的身份连续性**。
 
 这不是数据库，不是检索算法。这是 Codex 知道"我是谁"的凭证。
 
-## v1.1 新特性
+## v1.2 新特性
 
 - **插件式后端架构** — 灵感来自 Microsoft MarkItDown。继承 `SoulBackend` 基类即可添加新存储后端
 - **优先级注册** — 后端按优先级顺序尝试，插件的后端可以插在默认文件后端之前/之后
@@ -56,6 +56,7 @@ plugins/soul-backend-sample/        # 样本后端插件
 ## 学习来源
 
 - **[microsoft/markitdown](https://github.com/microsoft/markitdown)** — 插件系统架构：`entry_points` 插件发现、`ConverterRegistration` 优先级注册模式、懒加载、基类层次
+- **[thedotmack/claude-mem](https://github.com/thedotmack/claude-mem)** — 结构化记忆、双层存储、schema 版本、Hook 自动捕获
 - **[multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills)** — 四项行为准则，由 Forrest Chang 整理为可复用 Codex Skill
 - **Codex SDK** — 基于 SKILL.md + 文件系统的灵魂架构
 
@@ -101,3 +102,4 @@ class MyBackend(SoulBackend):
 ## 许可证
 
 MIT — 使用、分享、修改，随意。
+

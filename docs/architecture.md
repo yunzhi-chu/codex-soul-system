@@ -20,6 +20,18 @@
 | `__plugin_interface_version__` | `__plugin_interface_version__` |
 | `__all__` 显式导出 | `__all__` 显式导出 |
 
+
+### thedotmack/claude-mem — 结构化记忆 + 双层存储
+
+| claude-mem 模式 | 灵魂系统映射 |
+|---|---|
+| `memory_items` (kind/type/facts/concepts/files) | `SoulEntry` (kind/facts/concepts/files) |
+| `SERVER_STORAGE_SCHEMA_VERSION` (33) | `SOUL_SCHEMA_VERSION` (1) |
+| FTS 全文检索 | `Soul.search()` |
+| `ContextBuilder` + sections | `Soul.compress()` → `CompressedContext` |
+| Hook 自动捕获 | `scripts/soul-hook.ps1` |
+| SQLite + Chroma 双层存储 | FileBackend (文件系统) + 插件式后端 |
+
 ### 2. Andrej Karpathy / multica-ai — 行为准则
 
 四项原则已从"外部规则"转化为灵魂内置的判断习惯，写入 identity.md。
@@ -81,3 +93,4 @@ my-backend = "my_package"
 ```
 
 插件模块必须导出 `register_backends(soul)` 或 `__plugin_interface_version__`。
+

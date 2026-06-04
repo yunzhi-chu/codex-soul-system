@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """Extreme tests: Soul System v1.1 stress, edge, robustness."""
 
 import os, time, json, tempfile, shutil, gc, sys, threading, tracemalloc
@@ -172,7 +172,7 @@ check("all reject returns empty", not bool(state))
 # ============================================================
 section("6. Plugin & Version Robustness")
 
-check("version is 1.1.0", __version__ == "1.1.0")
+check("version is 1.1.0", __version__ == "1.2.0")
 
 import importlib.metadata as _meta
 eps = list(_meta.entry_points(group="soul.backend"))
