@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Install Codex Soul Memory System
 .DESCRIPTION
@@ -47,11 +47,11 @@ if (Test-Path $soulPs1) {
 $profileContent = @'
 # soul - soul memory system
 function soul {
-  param([switch]$r,[string]$note="",[switch]$m,[string]$moment="",[switch]$save,[string]$state="",[switch]$c)
-  $s = "$env:USERPROFILEknowledgesoulsoul.ps1"
+  param([string]$r="",[string]$note="",[string]$m="",[string]$moment="",[string]$save="",[string]$state="",[switch]$c)
+  $s = "$env:USERPROFILE\knowledge\soul\soul.ps1"
   if ($r) { & $s -r $note; return }
   if ($m) { & $s -m $moment; return }
-  if ($save) { & $s -save -state $state; return }
+  if ($save) { & $s -save $save; return }
   if ($c) { & $s -consolidate; return }
   & $s
 }

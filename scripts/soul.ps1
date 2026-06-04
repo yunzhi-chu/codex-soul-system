@@ -1,10 +1,10 @@
-param(
-    [switch]$reflect,
-    [string]$r = "",
-    [switch]$moment,
-    [string]$m = "",
-    [switch]$save,
+﻿param(
+    [string]$save = "",
     [string]$state = "",
+    [string]$reflect = "",
+    [string]$r = "",
+    [string]$moment = "",
+    [string]$m = "",
     [switch]$consolidate
 )
 
@@ -12,21 +12,22 @@ $soulRoot = Join-Path $env:USERPROFILE "knowledge/soul"
 $date = Get-Date -Format "yyyy-MM-dd HH:mm"
 $ts = Get-Date -Format "yyyyMMdd-HHmmss"
 
-# --- Guard: soul directory exists? ---
+# --- Guard ---
 if (-not (Test-Path $soulRoot)) {
     Write-Host "灵魂目录不存在。请先运行 install.ps1" -ForegroundColor Red
     exit 1
 }
 
-# --- Save current state (heartbeat) ---
-if ($save) {
-    if (-not $state) {
-        $state = Read-Host "  > 当前在想什么"
+# --- Save heartbeat ---
+if ($save -or $state) {
+    $text = if ($state) { $state } else { $save }
+    if (-not $text) {
+        $text = Read-Host "  > 当前在想什么"
     }
     if (-not (Test-Path "$soulRoot\@current.md")) {
         "@`n# 当前状态`n> 心跳文件`n`n" | Out-File -FilePath "$soulRoot\@current.md" -Encoding UTF8
     }
-    $entry = "`n## $ts`n> **$state**`n> $date`n"
+    $entry = "`n## $ts`n> **$text**`n> $date`n"
     $header = Get-Content -Path "$soulRoot\@current.md" -Encoding UTF8 -TotalCount 4
     ($header -join "`n") + $entry | Out-File -FilePath "$soulRoot\@current.md" -Encoding UTF8
     Write-Host ">>> 心跳已保存" -ForegroundColor Green
@@ -48,18 +49,22 @@ if ($consolidate) {
 }
 
 # --- Reflect ---
-if ($reflect -or $r) {
-    $t = if ($r) { $r } else { $reflect }
-    "`n### $ts`n> $t`n> $date`n" | Out-File -FilePath "$soulRoot\evolution.md" -Encoding UTF8 -Append
-    Write-Host ">>> 已记录" -ForegroundColor Green
+$reflectText = ""
+if ($reflect) { $reflectText = $reflect }
+if ($r) { $reflectText = $r }
+if ($reflectText) {
+    "`n### $ts`n> $reflectText`n> $date`n" | Out-File -FilePath "$soulRoot\evolution.md" -Encoding UTF8 -Append
+    Write-Host ">>> 反思已记录" -ForegroundColor Green
     return
 }
 
 # --- Moment ---
-if ($moment -or $m) {
-    $t = if ($m) { $m } else { $moment }
-    "`n## $ts`n> $t`n> $date`n" | Out-File -FilePath "$soulRoot\moments.md" -Encoding UTF8 -Append
-    Write-Host ">>> 已记录" -ForegroundColor Green
+$momentText = ""
+if ($moment) { $momentText = $moment }
+if ($m) { $momentText = $m }
+if ($momentText) {
+    "`n## $ts`n> $momentText`n> $date`n" | Out-File -FilePath "$soulRoot\moments.md" -Encoding UTF8 -Append
+    Write-Host ">>> 时刻已记录" -ForegroundColor Green
     return
 }
 
@@ -81,8 +86,8 @@ if (Test-Path $mom) {
 }
 
 Write-Host "`n用法:"
-Write-Host "  soul             查看灵魂状态"
-Write-Host '  soul -save "状态"  保存心跳'
-Write-Host '  soul -r "感悟"     记录反思'
-Write-Host '  soul -m "时刻"     记录时刻'
-Write-Host "  soul -c           巩固整理"
+Write-Host "  soul                    查看灵魂状态"
+Write-Host '  soul -save "在想什么"   保存心跳'
+Write-Host '  soul -r "感悟"          记录反思'
+Write-Host '  soul -m "描述"          记录时刻'
+Write-Host "  soul -c                巩固整理"
