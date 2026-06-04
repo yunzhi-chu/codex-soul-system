@@ -1,0 +1,20 @@
+﻿# OS
+Thumbs.db
+.DS_Store
+
+# Environment
+.env
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*$py.class
+
+# PowerShell
+*.ps1xml
