@@ -1,7 +1,7 @@
 ﻿# SPDX-FileCopyrightText: 2024-present Codex Soul System Contributors
 # SPDX-License-Identifier: MIT
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 __plugin_interface_version__ = 2
 SOUL_SCHEMA_VERSION = 1
 

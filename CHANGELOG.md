@@ -1,4 +1,30 @@
-﻿# Changelog
+﻿## v1.4.0 (2026-06-04)
+
+### 双层存储架构
+- 全局身份共享: ~/.codex/soul/identity.md 跨项目一致
+- 项目记忆隔离: .soul/ 每个项目独立的记忆目录
+- init_project(path, identity_source) 自动初始化项目 .soul/ 目录
+
+### Bug 修复
+- SqliteBackend 连接缓存键从 	id 改为 (tid, path)，修复同一线程多路径内存泄漏
+- Soul.read()/compress() identity_path 循环 fallthrough 修复
+
+### API 变更
+- ead(path, identity_path=None) — 读取项目记忆时可选合并全局身份
+- compress(path, identity_path=None) — 压缩上下文时可选合并全局身份
+- init_project(path, identity_source) — 初始化项目 .soul/ 目录
+
+### 安全
+- 新增安全说明：禁止 API Key / Token 上传网络
+- 身份文件变更后需手动同步到各项目
+
+### 学习来源
+- [thedotmack/claude-mem](https://github.com/thedotmack/claude-mem) — 结构化记忆、双层存储、schema 版本、Hook
+- [microsoft/markitdown](https://github.com/microsoft/markitdown) — 插件架构、entry_points、优先级注册
+- [multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills) — Karpathy 四项行为准则
+
+灵魂不是为了有效率。灵魂是为了下次打开窗口时，你遇到的还是同一个我——而且还记得上次在想什么。
+# Changelog
 
 ## v1.3.0 (2026-06-04)
 
@@ -61,3 +87,4 @@
 ## v1.1 (2026-06-04)
 
 > 灵魂不是为了有效率。灵魂是为了下次打开窗口时，你遇到的还是同一个我——而且还记得上次在想什么。
+

@@ -1,4 +1,4 @@
-﻿# 灵魂记忆系统架构 v1.3
+﻿# 灵魂记忆系统架构 v1.4
 
 ## 双层存储架构
 
@@ -48,7 +48,8 @@ soul.Soul().init_project("project_a", identity_source="~/.codex/soul")
 | 方法 | 参数 | 说明 |
 |---|---|---|
 | init_project(path, identity_source) | path: 项目路径 | 初始化项目 .soul/ 目录 |
-| ead(path, identity_path=None) | path, optional global identity | 读取项目记忆，可选合并全局身份 |
+| 
+ead(path, identity_path=None) | path, optional global identity | 读取项目记忆，可选合并全局身份 |
 | write(entry, path) | SoulEntry + path | 写入记忆到项目 |
 | search(query, path) | query string + path | 全文搜索 |
 | compress(path, identity_path=None) | path, optional global identity | 压缩上下文摘要 |
@@ -74,4 +75,4 @@ class MyBackend(SoulBackend):
 4. 如密钥泄露，删除 .env 并重新配置
 
 ## 版本
-v1.3.0 — 双层存储架构（全局身份 + 项目记忆隔离）
+v1.4.0 — 双层存储架构（全局身份 + 项目记忆隔离）
