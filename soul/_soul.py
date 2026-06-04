@@ -1,173 +1,113 @@
-﻿"""Main Soul class — the central coordinator, modeled after MarkItDown."""
-
 from __future__ import annotations
-import os
-import traceback
-import importlib.metadata as _metadata
+import os, traceback, importlib.metadata as _metadata
 from typing import Any, Optional
 from warnings import warn
-from pathlib import Path
 
 from ._base import SoulBackend
 from ._types import (
-    SoulEntry, SoulState, BackendRegistration,
+    SoulEntry, SoulState, SearchResult, CompressedContext,
+    BackendRegistration,
     PRIORITY_PRIMARY, PRIORITY_SECONDARY, PRIORITY_PLUGIN,
 )
-from ._exceptions import (
-    SoulException, SoulBackendError, SoulStateError, SoulPluginError,
-)
-from .__about__ import __version__, __plugin_interface_version__
+from ._exceptions import SoulBackendError
+from .__about__ import __version__, __plugin_interface_version__, SOUL_SCHEMA_VERSION
 
-# Lazy-loaded plugin list — same pattern as MarkItDown._plugins
 _plugins: Optional[list[Any]] = None
 
-
 def _load_plugins() -> list[Any]:
-    """Lazy-load soul system plugins via entry_points."""
     global _plugins
-    if _plugins is not None:
-        return _plugins
-
+    if _plugins is not None: return _plugins
     _plugins = []
-    for entry_point in _metadata.entry_points(group="soul.backend"):
-        try:
-            _plugins.append(entry_point.load())
-        except Exception:
-            tb = traceback.format_exc()
-            warn(f"Soul plugin '{entry_point.name}' failed to load, skipping:\n{tb}")
-
+    for ep in _metadata.entry_points(group="soul.backend"):
+        try: _plugins.append(ep.load())
+        except Exception: warn(f"Soul plugin {ep.name!r} failed to load")
     return _plugins
 
 
 class Soul:
-    """Codex Soul — cross-session identity continuity.
-
-    The Soul manages memory backends in a priority-ordered registration.
-    When reading/writing, it tries backends in priority order.
-    """
-
-    def __init__(
-        self,
-        *,
-        enable_builtins: Optional[bool] = None,
-        enable_plugins: Optional[bool] = None,
-        **kwargs: Any,
-    ):
+    def __init__(self, *, enable_builtins=None, enable_plugins=None, **kw):
         self._backends: list[BackendRegistration] = []
         self._builtins_enabled = False
         self._plugins_enabled = False
-
         if enable_builtins is None or enable_builtins:
-            self.enable_builtins(**kwargs)
+            self.enable_builtins(**kw)
+        if enable_plugins: self.enable_plugins(**kw)
 
-        if enable_plugins:
-            self.enable_plugins(**kwargs)
+    def register_backend(self, backend: SoulBackend, priority: float = PRIORITY_PLUGIN):
+        self._backends.insert(0, BackendRegistration(backend=backend, priority=priority))
 
-    # ── registration ──────────────────────────────────────────────
-
-    def register_backend(
-        self,
-        backend: SoulBackend,
-        priority: float = PRIORITY_PLUGIN,
-    ) -> None:
-        """Register a memory backend with a priority.
-
-        Lower priority = tried first. Stable sort preserves registration order.
-        Pattern: MarkItDown.register_converter().
-        """
-        self._backends.insert(
-            0, BackendRegistration(backend=backend, priority=priority)
-        )
-
-    def enable_builtins(self, **kwargs: Any) -> None:
-        """Register built-in backends (file-based)."""
-        if self._builtins_enabled:
-            return
-
+    def enable_builtins(self, **kw):
+        if self._builtins_enabled: return
         from .backends import FileBackend
         self.register_backend(FileBackend(), priority=PRIORITY_PRIMARY)
-
         self._builtins_enabled = True
 
-    def enable_plugins(self, **kwargs: Any) -> None:
-        """Load and register plugin-provided backends."""
-        if self._plugins_enabled:
-            return
-
-        plugins = _load_plugins()
-        for plugin in plugins:
+    def enable_plugins(self, **kw):
+        if self._plugins_enabled: return
+        for plugin in _load_plugins():
             try:
                 if hasattr(plugin, "register_backends"):
-                    plugin.register_backends(self, **kwargs)
-            except Exception:
-                tb = traceback.format_exc()
-                warn(f"Soul plugin failed to register:\n{tb}")
-
+                    plugin.register_backends(self, **kw)
+            except Exception: warn(f"Soul plugin failed to register")
         self._plugins_enabled = True
 
-    # ── core operations ───────────────────────────────────────────
+    def _sorted(self):
+        return sorted(self._backends, key=lambda r: r.priority)
 
-    def read(self, path: str, **kwargs: Any) -> SoulState:
-        """Read soul state by trying backends in priority order.
-
-        Returns the first non-empty result.
-        Pattern: MarkItDown._convert() with priority-sorted registrations.
-        """
-        sorted_registrations = sorted(
-            self._backends, key=lambda r: r.priority
-        )
-
-        for registration in sorted_registrations:
-            backend = registration.backend
+    def read(self, path: str, **kw) -> SoulState:
+        for reg in self._sorted():
             try:
-                if not backend.accepts(path, **kwargs):
-                    continue
-                state = backend.read(path, **kwargs)
-                if state:
-                    return state
-            except Exception as e:
-                warn(f"{type(backend).__name__}.read() failed: {e}")
-
+                if reg.backend.accepts(path, **kw):
+                    state = reg.backend.read(path, **kw)
+                    if state: return state
+            except Exception: pass
         return SoulState()
 
-    def write(self, entry: SoulEntry, path: str, **kwargs: Any) -> None:
-        """Write a soul entry using the first accepting backend."""
-        sorted_registrations = sorted(
-            self._backends, key=lambda r: r.priority
-        )
+    def write(self, entry: SoulEntry, path: str, **kw):
+        for reg in self._sorted():
+            if reg.backend.accepts(path, **kw):
+                reg.backend.write(entry, path, **kw)
+                return
+        raise SoulBackendError(f"No backend accepts {path}")
 
-        for registration in sorted_registrations:
-            backend = registration.backend
+    def search(self, query: str, path: str, **kw) -> SearchResult:
+        """FTS across all backends, return merged results."""
+        results = SearchResult(query=query)
+        for reg in self._sorted():
             try:
-                if backend.accepts(path, **kwargs):
-                    backend.write(entry, path, **kwargs)
-                    return
-            except Exception as e:
-                raise SoulBackendError(
-                    f"{type(backend).__name__}.write() failed: {e}"
-                ) from e
-
-        raise SoulBackendError(f"No backend accepts path: {path}")
-
-    def consolidate(self, path: str, **kwargs: Any) -> dict[str, Any]:
-        """Run consolidation on all accepting backends."""
-        results = {}
-        sorted_registrations = sorted(
-            self._backends, key=lambda r: r.priority
-        )
-
-        for registration in sorted_registrations:
-            backend = registration.backend
-            try:
-                if backend.accepts(path, **kwargs):
-                    results[type(backend).__name__] = backend.consolidate(path, **kwargs)
-            except Exception as e:
-                warn(f"{type(backend).__name__}.consolidate() failed: {e}")
-
-        if not results:
-            return {"moments": 0, "evolution": 0, "size_kb": 0}
+                if reg.backend.accepts(path, **kw):
+                    r = reg.backend.search(query, path, **kw)
+                    results.entries.extend(r.entries)
+                    results.total += r.total
+            except Exception: pass
         return results
+
+    def compress(self, path: str, **kw) -> CompressedContext:
+        """Generate compressed context for session injection."""
+        ctx = CompressedContext()
+        for reg in self._sorted():
+            try:
+                if reg.backend.accepts(path, **kw):
+                    c = reg.backend.compress(path, **kw)
+                    if c.header: ctx.header = c.header or ctx.header
+                    ctx.timeline.extend(c.timeline)
+                    ctx.summary = c.summary or ctx.summary
+                    ctx.recent_files.extend(c.recent_files)
+                    ctx.active_kinds.extend(c.active_kinds)
+            except Exception: pass
+        return ctx
+
+    def consolidate(self, path: str, **kw) -> dict[str, Any]:
+        results = {}
+        for reg in self._sorted():
+            if reg.backend.accepts(path, **kw):
+                results[type(reg.backend).__name__] = reg.backend.consolidate(path, **kw)
+        return results or {"moments": 0, "evolution": 0, "size_kb": 0}
 
     @property
     def version(self) -> str:
         return __version__
+
+    @property
+    def schema_version(self) -> int:
+        return SOUL_SCHEMA_VERSION

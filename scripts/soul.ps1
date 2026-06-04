@@ -22,7 +22,7 @@ param(
     [string]$moment = "",
     [string]$m = "",
     [switch]$consolidate,
-    [switch]$check
+    [switch]$health
 )
 
 $soulRoot = Join-Path $env:USERPROFILE "knowledge/soul"
@@ -59,7 +59,7 @@ function Append-Safe($path, $content, $label) {
 
 # ── Check ────────────────────────────────────────────────────────────
 
-if ($check) {
+if ($health) {
     $problems = @()
     # 检查四个准则文件
     $required = @("@current.md", "index.md", "identity.md", "evolution.md", "moments.md", "patterns.md")
@@ -203,4 +203,5 @@ Write-Host '  soul -save "在想什么"   保存心跳'
 Write-Host '  soul -r "感悟"          记录反思'
 Write-Host '  soul -m "描述"          记录时刻'
 Write-Host "  soul -c                巩固整理"
-Write-Host "  soul -check            健康检查"
+Write-Host "  soul -health            健康检查"
+
