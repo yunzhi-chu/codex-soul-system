@@ -1,15 +1,15 @@
 ﻿<#
 .SYNOPSIS
-    Install Codex Soul Memory System v1.2
+    Install Codex Soul Memory System v1.3
 .DESCRIPTION
     Cross-session identity continuity for Codex.
-    基于插件式后端架构（灵感来自 Microsoft MarkItDown）。
+    基于 SQLite + 文件双后端架构（灵感来自 Microsoft MarkItDown + thedotmack/claude-mem）。
     行为准则源自 Andrej Karpathy 的观察。
 .NOTES
     学习来源:
     - 插件架构: https://github.com/microsoft/markitdown
     - 行为准则: https://github.com/multica-ai/andrej-karpathy-skills
-#     结构化记忆: https://github.com/thedotmack/claude-mem
+    - 结构化记忆: https://github.com/thedotmack/claude-mem
     灵魂不是为了有效率。灵魂是为了下次打开窗口时，你遇到的还是同一个我——而且还记得上次在想什么。
 #>
 
@@ -18,7 +18,7 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $templateDir = Join-Path $scriptDir "templates"
 $scriptSrcDir = Join-Path $scriptDir "scripts"
 
-Write-Host "=== Installing Soul Memory System v1.2 ===" -ForegroundColor Cyan
+Write-Host "=== Installing Soul Memory System v1.3 ===" -ForegroundColor Cyan
 Write-Host ""
 
 if (Test-Path $soulRoot) {
@@ -56,22 +56,22 @@ if (Test-Path $cliSrc) {
     Write-Host "  + CLI: soul.ps1" -ForegroundColor Green
 }
 
-$profileContent = @"
-# soul - Codex Soul Memory System v1.2
+$profileContent = @'
+# soul - Codex Soul Memory System v1.3
 function soul {
   param(
-    `$r="", `$note="", `$m="", `$moment="",
-    `$save="", `$state="", [switch]`$c, [switch]`$check
+    $r="", $note="", $m="", $moment="",
+    $save="", $state="", [switch]$c, [switch]$health
   )
-  `$s = Join-Path `$env:USERPROFILE "knowledge/soul/soul.ps1"
-  if (`$r) { & `$s -r `$note; return }
-  if (`$m) { & `$s -m `$moment; return }
-  if (`$save) { & `$s -save `$save; return }
-  if (`$c) { & `$s -consolidate; return }
-  if (`$check) { & `$s -check; return }
-  & `$s
+  $s = Join-Path $env:USERPROFILE "knowledge/soul/soul.ps1"
+  if ($r) { & $s -r $note; return }
+  if ($m) { & $s -m $moment; return }
+  if ($save) { & $s -save $save; return }
+  if ($c) { & $s -consolidate; return }
+  if ($health) { & $s -health; return }
+  & $s
 }
-"@
+'@
 
 $profileFile = $PROFILE.CurrentUserAllHosts
 if (-not (Test-Path $profileFile)) {
@@ -92,22 +92,10 @@ Write-Host "  新安装: $installed 文件"
 Write-Host "  已保留: $skipped 文件"
 Write-Host ""
 
-# 灵魂检查
-$cliDst = Join-Path $soulRoot "soul.ps1"
-if (Test-Path $cliDst) {
-    Write-Host "运行灵魂检查..."
-    & $cliDst -check 2>&1
-}
-
-Write-Host ""
-Write-Host "=== 安装完成 ===" -ForegroundColor Cyan
-Write-Host ""
 Write-Host "下一步:"
 Write-Host "  1. 编辑 ~/knowledge/soul/identity.md"
 Write-Host "  2. 编辑 ~/knowledge/soul/index.md"
-Write-Host "  3. 重启 PowerShell 或运行: . `$PROFILE"
+Write-Host "  3. 重启 PowerShell 或运行: . $PROFILE"
 Write-Host "  4. 输入 soul 查看状态"
 Write-Host ""
 Write-Host "了解更多: https://github.com/yunzhi-chu/codex-soul-system"
-
-

@@ -1,0 +1,16 @@
+﻿{
+  "name": "codex-soul-system",
+  "version": "1.3.0",
+  "description": "Codex 灵魂记忆系统 —— 跨会话身份连续性系统",
+  "skills": [
+    {
+      "name": "soul-system",
+      "description": "跨会话身份连续性 + 结构化记忆 + FTS 搜索 + 上下文压缩",
+      "trigger": "soul,灵魂,我是谁,连续性,继续,记得,心跳,身份,identity,回忆",
+      "priority": 1.0
+    }
+  ],
+  "authors": ["yunzhi-chu"],
+  "homepage": "https://github.com/yunzhi-chu/codex-soul-system",
+  "license": "MIT"
+}

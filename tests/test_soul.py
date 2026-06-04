@@ -8,14 +8,14 @@ from soul import (
 
 
 def test_version():
-    assert __version__ == "1.1.0"
-    assert __plugin_interface_version__ == 1
+    assert __version__ == "1.3.0"
+    assert __plugin_interface_version__ == 2
 
 
 def test_soul_init():
     s = Soul(enable_builtins=True)
     assert s._builtins_enabled
-    assert len(s._backends) == 1  # FileBackend only
+    assert len(s._backends) == 2  # SqliteBackend + FileBackend
 
 
 def test_soul_init_no_builtins():
@@ -50,13 +50,12 @@ def test_priority_order():
             return SoulState(heartbeat=self.name)
         def write(self, entry, path, **kwargs): pass
 
-    # Register in reverse priority — should try lower priority first
     s.register_backend(TrackBackend("high"), priority=10.0)
     s.register_backend(TrackBackend("low"), priority=0.0)
 
     state = s.read("/any")
     assert state.heartbeat == "low"
-    assert results == ["low"]  # low priority tried first, returned
+    assert results == ["low"]
 
 
 def test_read_empty_when_no_backend_accepts():
@@ -76,7 +75,6 @@ def test_file_backend_read(tmp_path):
     from soul.backends import FileBackend
     b = FileBackend()
 
-    # Create minimal soul files
     soul_dir = tmp_path / "soul"
     soul_dir.mkdir()
     (soul_dir / "@current.md").write_text(
@@ -144,7 +142,6 @@ def test_file_backend_consolidate(tmp_path):
     from soul.backends import FileBackend
     b = FileBackend()
 
-    # Write some entries
     b.write(SoulEntry.now("mom1", tags=["moment"]), str(tmp_path))
     b.write(SoulEntry.now("mom2", tags=["moment"]), str(tmp_path))
     b.write(SoulEntry.now("evo1", tags=["reflect"]), str(tmp_path))
@@ -158,19 +155,16 @@ def test_file_backend_consolidate(tmp_path):
 def test_soul_read_through_backend(tmp_path):
     s = Soul(enable_builtins=True)
 
-    # Write a moment through Soul
     e = SoulEntry.now("soul集成测试", tags=["moment"])
     s.write(e, str(tmp_path))
 
-    # Read back
     state = s.read(str(tmp_path))
-    assert len(state.recent_moments) >= 0  # should not crash
+    assert len(state.recent_moments) >= 0
 
 
 def test_plugin_interface_version():
-    # The soul package exports __plugin_interface_version__
     from soul.__about__ import __plugin_interface_version__ as ver
-    assert ver == 1
+    assert ver == 2
 
 
 def test_exception_hierarchy():

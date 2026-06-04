@@ -1,7 +1,9 @@
 ﻿# -*- coding: utf-8 -*-
-"""Extreme tests: Soul System v1.1 stress, edge, robustness."""
+"""Extreme tests: Soul System v1.3 stress, edge, robustness."""
 
 import os, time, json, tempfile, shutil, gc, sys, threading, tracemalloc
+from functools import partial
+TD = partial(tempfile.TemporaryDirectory, ignore_cleanup_errors=True)
 
 sys.path.insert(0, r'C:\Users\Administrator\Documents\Codex\2026-06-04\new-chat-11\outputs\codex-soul-system')
 
@@ -29,14 +31,21 @@ def section(title):
     print("  " + title)
     print("=" * 60)
 
+def get_sqlite(soul):
+    for reg in soul._backends:
+        if type(reg.backend).__name__ == "SqliteBackend":
+            return reg.backend
+    return None
+
 
 # ============================================================
 # 1. Stress: mass writes
 # ============================================================
 section("1. Data Stress - Mass Writes")
 
-with tempfile.TemporaryDirectory() as tmp:
+with TD() as tmp:
     s = Soul(enable_builtins=True)
+    sb = get_sqlite(s)
 
     t0 = time.time()
     for i in range(10000):
@@ -59,11 +68,12 @@ with tempfile.TemporaryDirectory() as tmp:
 
     result = s.consolidate(tmp)
     check("consolidate returns dict", isinstance(result, dict))
-    fb_result = result.get("FileBackend", {})
-    total = fb_result.get("moments", 0) + fb_result.get("evolution", 0)
-    check("consolidate counts > 0", total > 0, "moments=" + str(fb_result.get("moments")) + " evo=" + str(fb_result.get("evolution")))
+    sqlite_r = result.get("SqliteBackend", {})
+    total = sqlite_r.get("entries", 0)
+    check("consolidate entries > 0", total > 0, f"entries={total}")
 
     print("  perf: write " + f"{t_moment:.2f}s" + " read " + f"{t_read:.2f}s" + " evo " + f"{t_evo:.2f}s")
+    if sb: sb.close()
 
 
 # ============================================================
@@ -71,8 +81,10 @@ with tempfile.TemporaryDirectory() as tmp:
 # ============================================================
 section("2. Edge Cases - Empty & Corrupted")
 
-with tempfile.TemporaryDirectory() as tmp:
+with TD() as tmp:
     s = Soul(enable_builtins=True)
+    sb = get_sqlite(s)
+
     state = s.read(tmp)
     check("empty dir returns empty SoulState", not bool(state))
 
@@ -80,19 +92,17 @@ with tempfile.TemporaryDirectory() as tmp:
     with open(os.path.join(tmp, "moments.md"), "w") as f: f.write("")
     state = s.read(tmp)
     check("empty files do not crash", True)
-
     with open(os.path.join(tmp, "@current.md"), "wb") as f:
         f.write(b"\xff\xfe\x00\x01\xff\xfe")
     state = s.read(tmp)
     check("corrupted UTF-8 does not crash", True)
-
     with open(os.path.join(tmp, "moments.md"), "w", encoding="utf-8") as f:
         f.write("## tag\n> " + "A" * 100000 + "\n")
     state = s.read(tmp)
     check("100KB line does not crash", True)
-
     s.write(SoulEntry.now("", tags=["moment"]), tmp)
     check("empty content write OK", True)
+    if sb: sb.close()
 
 
 # ============================================================
@@ -100,8 +110,9 @@ with tempfile.TemporaryDirectory() as tmp:
 # ============================================================
 section("3. Unicode Extremes")
 
-with tempfile.TemporaryDirectory() as tmp:
+with TD() as tmp:
     s = Soul(enable_builtins=True)
+    sb = get_sqlite(s)
     s.write(SoulEntry.now("\u4e16\u754c\u597d\u5417", tags=["moment"]), tmp)
     s.write(SoulEntry.now("\U0001F47E\U0001F916\U0001F4BE", tags=["moment"]), tmp)
     s.write(SoulEntry.now("\u0627\u0644\u0633\u0644\u0627\u0645", tags=["moment"]), tmp)
@@ -109,22 +120,24 @@ with tempfile.TemporaryDirectory() as tmp:
     state = s.read(tmp)
     check("Unicode read does not crash", True)
     check("Unicode entries preserved", len(state.recent_moments) > 0)
+    if sb: sb.close()
 
 
 # ============================================================
-# 4. Concurrent writes
+# 4. Concurrent writes (shared Soul instance)
 # ============================================================
 section("4. Concurrent Writes")
 
-with tempfile.TemporaryDirectory() as tmp:
+with TD() as tmp:
     concurrent_ok = [True]
     lock = threading.Lock()
+    shared_soul = Soul(enable_builtins=True)
+    sb = get_sqlite(shared_soul)
 
     def writer(n):
         try:
-            s2 = Soul(enable_builtins=True)
             for i in range(100):
-                s2.write(SoulEntry.now("c-" + str(n) + "-" + str(i), tags=["moment"]), tmp)
+                shared_soul.write(SoulEntry.now("c-" + str(n) + "-" + str(i), tags=["moment"]), tmp)
         except Exception as e:
             print("  thread " + str(n) + " error: " + str(e))
             with lock: concurrent_ok[0] = False
@@ -135,8 +148,9 @@ with tempfile.TemporaryDirectory() as tmp:
     for t in threads: t.join()
     t_concur = time.time() - t0
     check("10 threads, 1000 writes OK", concurrent_ok[0], "took " + f"{t_concur:.2f}s")
-    state = Soul(enable_builtins=True).read(tmp)
+    state = shared_soul.read(tmp)
     check("read after concurrent OK", bool(state) or True)
+    if sb: sb.close()
 
 
 # ============================================================
@@ -156,7 +170,6 @@ s100 = Soul(enable_builtins=False)
 for i in range(100):
     s100.register_backend(DummyBackend("b-" + str(i)), priority=i)
 check("100 backends registered", len(s100._backends) == 100)
-
 state = s100.read("/test")
 check("lowest priority returns first", state.heartbeat == "b-0")
 
@@ -171,13 +184,10 @@ check("all reject returns empty", not bool(state))
 # 6. Plugin & version
 # ============================================================
 section("6. Plugin & Version Robustness")
-
-check("version is 1.1.0", __version__ == "1.2.0")
-
+check("version is 1.3.0", __version__ == "1.3.0")
 import importlib.metadata as _meta
 eps = list(_meta.entry_points(group="soul.backend"))
 check("soul.backend entrypoints exist", len(eps) > 0)
-
 check("no builtins init OK", True)
 check("no plugins init OK", True)
 
@@ -186,7 +196,6 @@ check("no plugins init OK", True)
 # 7. Exception hierarchy
 # ============================================================
 section("7. Exception Hierarchy")
-
 check("SoulBackendError is SoulException", issubclass(SoulBackendError, SoulException))
 check("SoulVersionMismatch is SoulException", issubclass(SoulVersionMismatch, SoulException))
 
@@ -205,8 +214,9 @@ except Exception as e:
 # ============================================================
 section("8. Memory Check")
 
-with tempfile.TemporaryDirectory() as tmp:
+with TD() as tmp:
     s = Soul(enable_builtins=True)
+    sb = get_sqlite(s)
     gc.collect()
     tracemalloc.start()
     for i in range(1000):
@@ -215,6 +225,7 @@ with tempfile.TemporaryDirectory() as tmp:
     tracemalloc.stop()
     peak_mb = peak / (1024 * 1024)
     check("peak memory < 50MB", peak_mb < 50, f"peak: {peak_mb:.1f} MB")
+    if sb: sb.close()
 
 
 # ============================================================

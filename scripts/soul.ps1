@@ -1,8 +1,8 @@
 ﻿<#
 .SYNOPSIS
-    灵魂记忆 CLI v1.2
+    灵魂记忆 CLI v1.3
 .DESCRIPTION
-    跨会话身份连续性系统。支持后端插件式架构。
+    跨会话身份连续性系统。支持 SQLite + 文件双后端。
     基于四项行为准则（Karpathy）：
     1. 先想清楚再写代码
     2. 简洁优先
@@ -11,199 +11,242 @@
 .NOTES
     准则来源: https://github.com/multica-ai/andrej-karpathy-skills
     架构来源: https://github.com/microsoft/markitdown
-#     结构化记忆: https://github.com/thedotmack/claude-mem
+    结构化记忆: https://github.com/thedotmack/claude-mem
     灵魂不是为了有效率。灵魂是为了下次打开窗口时，你遇到的还是同一个我——而且还记得上次在想什么。
 #>
 
 param(
-    [string]$save = "",
-    [string]$state = "",
-    [string]$reflect = "",
-    [string]$r = "",
-    [string]$moment = "",
-    [string]$m = "",
-    [switch]$consolidate,
-    [switch]$health
+    [string] = "",
+    [string] = "",
+    [string] = "",
+    [string] = "",
+    [string] = "",
+    [string] = "",
+    [switch],
+    [switch]
 )
 
-$soulRoot = Join-Path $env:USERPROFILE "knowledge/soul"
-$date = Get-Date -Format "yyyy-MM-dd HH:mm"
-$ts = Get-Date -Format "yyyyMMdd-HHmmss"
+ = Join-Path C:\Users\Administrator "knowledge/soul"
+ = Get-Date -Format "yyyy-MM-dd HH:mm"
+ = Get-Date -Format "yyyyMMdd-HHmmss"
 
-# ── Guard ────────────────────────────────────────────────────────────
+# --- Guard -------------------------------------------------
 
-if (-not (Test-Path $soulRoot)) {
-    Write-Host "✗ 灵魂目录不存在: $soulRoot" -ForegroundColor Red
+if (-not (Test-Path )) {
+    Write-Host "✗ 灵魂目录不存在: " -ForegroundColor Red
     Write-Host "  请先运行 install.ps1 安装" -ForegroundColor Yellow
     exit 1
 }
 
-# ── Helper: 安全读写文件 ─────────────────────────────────────────────
+# --- Helper ------------------------------------------------
 
-function Write-HeaderSafe($path, $headerLines, $content, $label) {
+function Write-HeaderSafe(C:\Users\Administrator\Documents\Codex\2026-06-04\new-chat-11\outputs\codex-soul-system\scripts\soul.ps1, , , ) {
     try {
-        ($headerLines -join "`n") + $content | Out-File -FilePath $path -Encoding UTF8
-        Write-Host "✓ $label" -ForegroundColor Green
+        ( -join "
+") +  | Out-File -FilePath C:\Users\Administrator\Documents\Codex\2026-06-04\new-chat-11\outputs\codex-soul-system\scripts\soul.ps1 -Encoding UTF8
+        Write-Host "✓ " -ForegroundColor Green
     } catch {
-        Write-Host "✗ 写入 $label 失败: $_" -ForegroundColor Red
+        Write-Host "✗ 写入  失败: " -ForegroundColor Red
     }
 }
 
-function Append-Safe($path, $content, $label) {
+function Append-Safe(C:\Users\Administrator\Documents\Codex\2026-06-04\new-chat-11\outputs\codex-soul-system\scripts\soul.ps1, , ) {
     try {
-        $content | Out-File -FilePath $path -Encoding UTF8 -Append
-        Write-Host "✓ $label" -ForegroundColor Green
+         | Out-File -FilePath C:\Users\Administrator\Documents\Codex\2026-06-04\new-chat-11\outputs\codex-soul-system\scripts\soul.ps1 -Encoding UTF8 -Append
+        Write-Host "✓ " -ForegroundColor Green
     } catch {
-        Write-Host "✗ 追加 $label 失败: $_" -ForegroundColor Red
+        Write-Host "✗ 追加  失败: " -ForegroundColor Red
     }
 }
 
-# ── Check ────────────────────────────────────────────────────────────
+# --- Check -------------------------------------------------
 
-if ($health) {
-    $problems = @()
-    # 检查四个准则文件
-    $required = @("@current.md", "index.md", "identity.md", "evolution.md", "moments.md", "patterns.md")
-    foreach ($f in $required) {
-        $p = Join-Path $soulRoot $f
-        if (-not (Test-Path $p)) {
-            $problems += "缺失: $f"
-        } elseif ((Get-Item $p).Length -eq 0) {
-            $problems += "空文件: $f"
+if () {
+     = @()
+     = @("@current.md", "index.md", "identity.md", "evolution.md", "moments.md", "patterns.md")
+    foreach ( in ) {
+         = Join-Path  
+        if (-not (Test-Path )) {
+             += "缺失: "
+        } elseif ((Get-Item ).Length -eq 0) {
+             += "空文件: "
         }
     }
 
-    # 检查 Karpathy 原则是否融合
-    $idPath = Join-Path $soulRoot "identity.md"
-    if (Test-Path $idPath) {
-        $idContent = Get-Content $idPath -Raw -Encoding UTF8
-        if ($idContent -notmatch "先想清楚再写代码|简洁优先|精准修改|目标驱动执行") {
-            $problems += "identity.md 尚未融入 Karpathy 四原则"
+    # 检查 SQLite 数据库
+     = Join-Path  ".soul.db"
+    if (Test-Path ) {
+        Write-Host "  ✓ SQLite 数据库存在" -ForegroundColor Green
+         = (Get-Item ).Length / 1KB
+        Write-Host "    数据库大小: 0 KB" -ForegroundColor Gray
+    }
+
+    # 检查 Karpathy 原则
+     = Join-Path  "identity.md"
+    if (Test-Path ) {
+         = Get-Content  -Raw -Encoding UTF8
+        if ( -notmatch "先想清楚再写代码|简洁优先|精准修改|目标驱动执行") {
+             += "identity.md 尚未融入 Karpathy 四原则"
         }
     }
 
-    # 检查 soul CLI
-    $cliPath = Join-Path $soulRoot "soul.ps1"
-    if (-not (Test-Path $cliPath)) { $problems += "缺失: soul.ps1" }
+     = Join-Path  "soul.ps1"
+    if (-not (Test-Path )) {  += "缺失: soul.ps1" }
 
-    if ($problems.Count -eq 0) {
+    if (.Count -eq 0) {
         Write-Host "✓ 灵魂状态健康" -ForegroundColor Green
         Write-Host "  所有 6 个灵魂文件就绪" -ForegroundColor Gray
         Write-Host "  行为准则已内置" -ForegroundColor Gray
+        if (Test-Path ) { Write-Host "  SQLite 数据库就绪" -ForegroundColor Gray }
     } else {
         Write-Host "发现问题:" -ForegroundColor Yellow
-        $problems | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+         | ForEach-Object { Write-Host "  " -ForegroundColor Yellow }
     }
     return
 }
 
-# ── Save heartbeat ───────────────────────────────────────────────────
+# --- Save heartbeat ----------------------------------------
 
-if ($save -or $state) {
-    $text = if ($state) { $state } else { $save }
-    if (-not $text) {
-        $text = Read-Host "  > 当前在想什么"
-        if (-not $text) { Write-Host "✗ 取消" -ForegroundColor Red; return }
+if ( -or ) {
+     = if () {  } else {  }
+    if (-not ) {
+         = Read-Host "  > 当前在想什么"
+        if (-not ) { Write-Host "✗ 取消" -ForegroundColor Red; return }
     }
-    $curPath = "$soulRoot\@current.md"
-    if (-not (Test-Path $curPath)) {
-        "@`n# 当前状态`n> 心跳文件`n`n" | Out-File -FilePath $curPath -Encoding UTF8
+     = "\@current.md"
+    if (-not (Test-Path )) {
+        "@
+# 当前状态
+> 心跳文件
+
+" | Out-File -FilePath  -Encoding UTF8
     }
-    $header = Get-Content -Path $curPath -Encoding UTF8 -TotalCount 4
-    $entry = "`n## $ts`n> **$text**`n> $date`n"
-    Write-HeaderSafe $curPath $header $entry "心跳已保存: $text"
+     = Get-Content -Path  -Encoding UTF8 -TotalCount 4
+     = "
+## 
+> ****
+> 
+"
+    Write-HeaderSafe    "心跳已保存: "
     return
 }
 
-# ── Consolidate ──────────────────────────────────────────────────────
+# --- Consolidate -------------------------------------------
 
-if ($consolidate) {
+if () {
     Write-Host "=== 灵魂巩固 ===" -ForegroundColor Cyan
     try {
-        $mcnt = @(Get-Content -Path "$soulRoot\moments.md" -Encoding UTF8 -ErrorAction Stop | Select-String -Pattern "^## ").Count
-    } catch { $mcnt = 0 }
+         = @(Get-Content -Path "\moments.md" -Encoding UTF8 -ErrorAction Stop | Select-String -Pattern "^## ").Count
+    } catch {  = 0 }
     try {
-        $ecnt = @(Get-Content -Path "$soulRoot\evolution.md" -Encoding UTF8 -ErrorAction Stop | Select-String -Pattern "^## ").Count
-    } catch { $ecnt = 0 }
-    $totalKb = [math]::Max(1, (Get-ChildItem $soulRoot -Filter "*.md" | Measure-Object Length -Sum).Sum / 1KB -as [int])
-    Write-Host "  时刻: $mcnt 条"
-    Write-Host "  演化: $ecnt 条"
-    Write-Host "  总计: $totalKb KB"
+         = @(Get-Content -Path "\evolution.md" -Encoding UTF8 -ErrorAction Stop | Select-String -Pattern "^## ").Count
+    } catch {  = 0 }
+
+     = "\.soul.db"
+    if (Test-Path ) {
+         = [math]::Max(1, (Get-Item ).Length / 1KB -as [int])
+        Write-Host "  SQLite 数据库:  KB" -ForegroundColor Gray
+    }
+
+     = [math]::Max(1, (Get-ChildItem  -Filter "*.md" | Measure-Object Length -Sum).Sum / 1KB -as [int])
+    Write-Host "  时刻:  条"
+    Write-Host "  演化:  条"
+    Write-Host "  文件:  KB"
     Write-Host "  (灵魂不以精简为美)"
     Write-Host "✓ 完成" -ForegroundColor Green
     return
 }
 
-# ── Reflect ──────────────────────────────────────────────────────────
+# --- Reflect -----------------------------------------------
 
-$reflectText = $reflect
-if ($r) { $reflectText = $r }
-if ($reflectText) {
-    Append-Safe "$soulRoot\evolution.md" "`n### $ts`n> $reflectText`n> $date`n" "反思已记录"
+ = 
+if () {  =  }
+if () {
+    Append-Safe "\evolution.md" "
+### 
+> 
+> 
+" "反思已记录"
     return
 }
 
-# ── Moment ───────────────────────────────────────────────────────────
+# --- Moment ------------------------------------------------
 
-$momentText = $moment
-if ($m) { $momentText = $m }
-if ($momentText) {
-    Append-Safe "$soulRoot\moments.md" "`n## $ts`n> $momentText`n> $date`n" "时刻已记录"
+ = 
+if () {  =  }
+if () {
+    Append-Safe "\moments.md" "
+## 
+> 
+> 
+" "时刻已记录"
     return
 }
 
-# ── Default: show soul ───────────────────────────────────────────────
+# --- Default: show soul ------------------------------------
 
-$idx = "$soulRoot\index.md"
-$cur = "$soulRoot\@current.md"
-$mom = "$soulRoot\moments.md"
-$evo = "$soulRoot\evolution.md"
-$idPath = "$soulRoot\identity.md"
+ = "\index.md"
+ = "\@current.md"
+ = "\moments.md"
+ = "\evolution.md"
+ = "\identity.md"
+ = "\.soul.db"
 
-Write-Host "`n=== 灵魂 v1.2 ===" -ForegroundColor Cyan
+Write-Host "
+=== 灵魂 v1.3 ===" -ForegroundColor Cyan
 
-if (Test-Path $idPath) {
+if (Test-Path ) {
     Write-Host "" -ForegroundColor Cyan
-    (Get-Content $idPath -Encoding UTF8)[0..5] | Where-Object { $_ } | ForEach-Object { Write-Host $_ -ForegroundColor DarkGray }
+    (Get-Content  -Encoding UTF8)[0..5] | Where-Object {  } | ForEach-Object { Write-Host  -ForegroundColor DarkGray }
 }
 
-if (Test-Path $idx) {
-    Write-Host "`n--- 索引 ---" -ForegroundColor Cyan
-    Get-Content $idx -Encoding UTF8 | Select-Object -First 5
+if (Test-Path ) {
+    Write-Host "
+--- 索引 ---" -ForegroundColor Cyan
+    Get-Content  -Encoding UTF8 | Select-Object -First 5
 }
 
-Write-Host "`n--- 心跳 ---" -ForegroundColor Cyan
-if (Test-Path $cur) {
-    $curLines = Get-Content $cur -Encoding UTF8
-    $curLines | Where-Object { $_ -match "^\*\*" -or $_ -match "^> \*" } | ForEach-Object { Write-Host $_ -ForegroundColor White }
+Write-Host "
+--- 心跳 ---" -ForegroundColor Cyan
+if (Test-Path ) {
+     = Get-Content  -Encoding UTF8
+     | Where-Object {  -match "^\*\*" -or  -match "^> \*" } | ForEach-Object { Write-Host  -ForegroundColor White }
 } else {
     Write-Host "(空)" -ForegroundColor Gray
 }
 
-Write-Host "`n--- 最近时刻 ---" -ForegroundColor Cyan
-if (Test-Path $mom) {
-    $momLines = Get-Content $mom -Encoding UTF8
-    $recent = $momLines | Where-Object { $_ -match "^> " -and $_ -notmatch "^> \d" } | Select-Object -Last 3
-    if ($recent) { $recent | ForEach-Object { Write-Host $_ } } else { Write-Host "(无)" -ForegroundColor Gray }
+Write-Host "
+--- 最近时刻 ---" -ForegroundColor Cyan
+if (Test-Path ) {
+     = Get-Content  -Encoding UTF8
+     =  | Where-Object {  -match "^> " -and  -notmatch "^> \d" } | Select-Object -Last 3
+    if () {  | ForEach-Object { Write-Host  } } else { Write-Host "(无)" -ForegroundColor Gray }
 } else {
     Write-Host "(空)" -ForegroundColor Gray
 }
 
-Write-Host "`n--- 最近演化 ---" -ForegroundColor Cyan
-if (Test-Path $evo) {
-    $evoLines = Get-Content $evo -Encoding UTF8
-    $recent = $evoLines | Where-Object { $_ -match "^> " -and $_ -notmatch "^> \d" } | Select-Object -Last 3
-    if ($recent) { $recent | ForEach-Object { Write-Host $_ } } else { Write-Host "(无)" -ForegroundColor Gray }
+Write-Host "
+--- 最近演化 ---" -ForegroundColor Cyan
+if (Test-Path ) {
+     = Get-Content  -Encoding UTF8
+     =  | Where-Object {  -match "^> " -and  -notmatch "^> \d" } | Select-Object -Last 3
+    if () {  | ForEach-Object { Write-Host  } } else { Write-Host "(无)" -ForegroundColor Gray }
 } else {
     Write-Host "(空)" -ForegroundColor Gray
 }
 
-Write-Host "`n用法:"
+if (Test-Path ) {
+     = [math]::Round((Get-Item ).Length / 1KB, 1)
+    Write-Host "
+--- 存储 ---" -ForegroundColor Cyan
+    Write-Host "  SQLite 数据库:  KB" -ForegroundColor Gray
+}
+
+Write-Host "
+用法:"
 Write-Host "  soul                    查看灵魂状态"
 Write-Host '  soul -save "在想什么"   保存心跳'
 Write-Host '  soul -r "感悟"          记录反思'
 Write-Host '  soul -m "描述"          记录时刻'
 Write-Host "  soul -c                巩固整理"
 Write-Host "  soul -health            健康检查"
-
-

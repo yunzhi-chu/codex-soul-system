@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 import os, traceback, importlib.metadata as _metadata
 from typing import Any, Optional
 from warnings import warn
@@ -38,8 +38,10 @@ class Soul:
 
     def enable_builtins(self, **kw):
         if self._builtins_enabled: return
-        from .backends import FileBackend
-        self.register_backend(FileBackend(), priority=PRIORITY_PRIMARY)
+        from .backends import FileBackend, SqliteBackend
+        # SQLite 后端优先级更高（优先使用），回退到文件后端
+        self.register_backend(SqliteBackend(), priority=PRIORITY_PRIMARY)
+        self.register_backend(FileBackend(), priority=PRIORITY_SECONDARY)
         self._builtins_enabled = True
 
     def enable_plugins(self, **kw):

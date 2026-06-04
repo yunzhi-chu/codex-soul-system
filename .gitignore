@@ -1,3 +1,9 @@
 ﻿*.egg-info/
 .pytest_cache/
 __pycache__/
+
+*.db
+*.db-wal
+*.db-shm
+.soul.db
+

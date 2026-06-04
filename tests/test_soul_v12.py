@@ -22,7 +22,7 @@ def section(t):
 
 section("1. Schema Versioning")
 check("schema version is 1", SOUL_SCHEMA_VERSION == 1)
-check("version is 1.2.0", __version__ == "1.2.0")
+check("version is 1.2.0", __version__ == "1.3.0")
 check("6 memory kinds", len(MEMORY_KINDS) == 6)
 check("heartbeat in kinds", "heartbeat" in MEMORY_KINDS)
 check("observation in kinds", "observation" in MEMORY_KINDS)
@@ -112,10 +112,11 @@ check("version in state", st.schema_version == 1)
 
 
 section("8. Soul init")
-check("version property", Soul().version == "1.2.0")
+check("version property", Soul().version == "1.3.0")
 check("schema property", Soul().schema_version == 1)
 
 
 section("Summary")
 print(f"  {PASS} passed, {FAIL} failed")
+
 
