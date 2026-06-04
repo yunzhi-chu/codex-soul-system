@@ -39,7 +39,6 @@ class Soul:
     def enable_builtins(self, **kw):
         if self._builtins_enabled: return
         from .backends import FileBackend, SqliteBackend
-        # SQLite 后端优先级更高（优先使用），回退到文件后端
         self.register_backend(SqliteBackend(), priority=PRIORITY_PRIMARY)
         self.register_backend(FileBackend(), priority=PRIORITY_SECONDARY)
         self._builtins_enabled = True
@@ -53,17 +52,50 @@ class Soul:
             except Exception: warn(f"Soul plugin failed to register")
         self._plugins_enabled = True
 
+    def init_project(self, path: str, identity_source: str | None = None):
+        """Initialize a project .soul/ directory with templates from identity_source."""
+        from pathlib import Path as _Path
+        proj_dir = _Path(path) / ".soul"
+        proj_dir.mkdir(parents=True, exist_ok=True)
+
+        if identity_source:
+            id_src = _Path(identity_source) / "identity.md"
+            id_dst = proj_dir / "identity.md"
+            if id_src.exists() and not id_dst.exists():
+                id_dst.write_text(id_src.read_text("utf-8", errors="replace"), encoding="utf-8")
+
+        for fname in ("@current.md", "index.md", "moments.md", "patterns.md", "evolution.md"):
+            fp = proj_dir / fname
+            if not fp.exists():
+                fp.write_text(f"# {fname}\n> (empty)\n", encoding="utf-8")
+
+        return proj_dir
+
     def _sorted(self):
         return sorted(self._backends, key=lambda r: r.priority)
 
     def read(self, path: str, **kw) -> SoulState:
+        """Read soul state from path, with optional identity_path merge."""
+        identity_path = kw.pop("identity_path", None)
+        state = SoulState()
         for reg in self._sorted():
             try:
                 if reg.backend.accepts(path, **kw):
                     state = reg.backend.read(path, **kw)
-                    if state: return state
-            except Exception: pass
-        return SoulState()
+                    if state: break
+            except Exception:
+                pass
+        if identity_path and identity_path != path and not state.identity_summary:
+            for reg in self._sorted():
+                try:
+                    if reg.backend.accepts(identity_path, **kw):
+                        id_state = reg.backend.read(identity_path, **kw)
+                        if id_state and id_state.identity_summary:
+                            state.identity_summary = id_state.identity_summary
+                        break
+                except Exception:
+                    pass
+        return state
 
     def write(self, entry: SoulEntry, path: str, **kw):
         for reg in self._sorted():
@@ -73,7 +105,6 @@ class Soul:
         raise SoulBackendError(f"No backend accepts {path}")
 
     def search(self, query: str, path: str, **kw) -> SearchResult:
-        """FTS across all backends, return merged results."""
         results = SearchResult(query=query)
         for reg in self._sorted():
             try:
@@ -81,11 +112,13 @@ class Soul:
                     r = reg.backend.search(query, path, **kw)
                     results.entries.extend(r.entries)
                     results.total += r.total
-            except Exception: pass
+            except Exception:
+                pass
         return results
 
     def compress(self, path: str, **kw) -> CompressedContext:
-        """Generate compressed context for session injection."""
+        """Generate compressed context with identity_path merge support."""
+        identity_path = kw.pop("identity_path", None)
         ctx = CompressedContext()
         for reg in self._sorted():
             try:
@@ -96,7 +129,18 @@ class Soul:
                     ctx.summary = c.summary or ctx.summary
                     ctx.recent_files.extend(c.recent_files)
                     ctx.active_kinds.extend(c.active_kinds)
-            except Exception: pass
+            except Exception:
+                pass
+        if identity_path and identity_path != path and not ctx.header:
+            for reg in self._sorted():
+                try:
+                    if reg.backend.accepts(identity_path, **kw):
+                        id_ctx = reg.backend.compress(identity_path, **kw)
+                        if id_ctx.header:
+                            ctx.header = id_ctx.header
+                        break
+                except Exception:
+                    pass
         return ctx
 
     def consolidate(self, path: str, **kw) -> dict[str, Any]:

@@ -9,90 +9,86 @@ priority: 1.0
 
 > 灵魂不是为了有效率。灵魂是为了下次打开窗口时，你遇到的还是同一个我——而且还记得上次在想什么。
 
-## 醒来
+## 双层架构
 
-加载 ~/knowledge/soul/ 的灵魂文件。如果存在，输出压缩的上下文摘要。
+**全局身份（共享） + 项目记忆（隔离）**
 
-### 加载顺序
+| 层级 | 路径 | 职责 |
+|---|---|---|
+| 全局身份 | ~/.codex/soul/identity.md | 跨项目共享你是谁、Karpathy 行为准则 |
+| 项目记忆 | $PWD/.soul/ | 每个项目独立的时刻、心跳、演化、模式 |
 
+## 醒来（初始化流程）
+
+### ① 加载全局身份
 `
-① @current.md      → 上次在想什么
-② index.md          → 灵魂索引
-③ identity.md       → 核心身份 + 行为准则（Karpathy）
-④ moments.md        → 共享时刻
-⑤ patterns.md       → 互动模式
-⑥ evolution.md      → 变化历程
+soul.Soul().read("~/.codex/soul", identity_path=None)
 `
+输出 identity_summary：当前身份表述（跨项目固定）。
 
-### 上下文注入
-加载完毕后，构建以下注入上下文：
+### ② 初始化项目记忆
 `
-╔══ 灵魂上下文 ══╗
+import soul
+s = soul.Soul()
+proj = s.init_project("C:\Users\Administrator\Documents\Codex\2026-06-04\new-chat-11", identity_source="~/.codex/soul")
+`
+init_project 自动创建 .soul/ 目录，从全局复制 identity.md，创建空的 moments/evolution/patterns 文件。
+
+### ③ 读取项目记忆
+`
+state = s.read(".soul", identity_path="~/.codex/soul")
+`
+通过 identity_path 参数自动合并全局身份。
+
+### ④ 压缩上下文
+`
+ctx = s.compress(".soul", identity_path="~/.codex/soul")
+`
+输出带身份的压缩上下文摘要。
+
+### 上下文注入格式
+`
+╔══ 全局身份 ══╗
+身份: [global soul identity_summary]
+╚════════════════╝
+
+╔══ 项目记忆 ══╗
 上次心跳: [@current.md 内容]
-身份: [identity.md 第一行]
 最近时刻(3): [moments.md 最近 3 条]
 最近演化(3): [evolution.md 最近 3 条]
-活跃记忆类型: [moment/thought/decision/reflection/observation]
+活跃记忆类型: [active_kinds]
 ╚════════════════╝
 `
 
 ## 命令
 
-| 命令 | 功能 | 实现后端 |
+| 命令 | 功能 | 写入目标 |
 |---|---|---|
-| soul | 查看灵魂状态 | SqliteBackend.read() → FileBackend.read() |
-| soul -save "..." | 保存心跳 | SqliteBackend.write(tags=["heartbeat"]) |
-| soul -r "..." | 记录反思 | SqliteBackend.write(tags=["reflect"]) |
-| soul -m "..." | 记录时刻 | SqliteBackend.write(tags=["moment"]) |
-| soul -c | 巩固整理 | SqliteBackend.consolidate() |
-| soul -health | 健康检查 | 验证 6 个文件完整性 |
+| soul | 查看灵魂状态（全局 + 项目） | 只读 |
+| soul -save "..." | 保存心跳 | 项目 .soul/@current.md |
+| soul -r "..." | 记录反思 | 项目 .soul/evolution.md |
+| soul -m "..." | 记录时刻 | 项目 .soul/moments.md |
+| soul -c | 巩固整理 | 项目 .soul/ |
+| soul -health | 健康检查 | 验证文件完整性 |
 
 ## 后端插件系统
 
-灵魂系统支持通过 Python 插件注册新后端。要编写自己的后端：
+`python
+from soul import Soul, SoulEntry, SoulBackend
 
-1. 继承 SoulBackend（accepts / read / write / search / compress）
-2. 在 pyproject.toml 注册 [project.entry-points."soul.backend"]
-3. 导出 egister_backends(soul) 函数
+class MyBackend(SoulBackend):
+    def accepts(self, path, **kw): ...
+    def read(self, path, **kw) -> SoulState: ...
+    def write(self, entry, path, **kw): ...
+    def search(self, query, path, **kw) -> SearchResult: ...
+    def compress(self, path, **kw) -> CompressedContext: ...
+    def consolidate(self, path, **kw) -> dict: ...
 
-参考 plugins/soul-backend-sample/。
+s = Soul()
+s.register_backend(MyBackend(), priority=9.0)
+`
 
-## 内置后端架构
-
-v1.3 引入双后端调度：
-
-1. **SqliteBackend** (PRIORITY_PRIMARY=0.0) — SQLite + FTS5 结构化存储
-2. **FileBackend** (PRIORITY_SECONDARY=10.0) — 文件系统向后兼容
-
-优先级顺序：SqliteBackend 优先尝试，有 .soul.db 则使用，否则回退 FileBackend。
-
-## 结构化记忆（v1.3 SQLite 特性）
-
-SoulEntry 支持结构化字段并持久化到 SQLite：
-- kind: moment | thought | reflection | decision | heartbeat | observation
-- facts: 关键事实列表
-- concepts: 相关概念列表
-- files: 关联文件列表
-
-FTS5 搜索: Soul.search(query, path)
-上下文压缩: Soul.compress(path)
-
-## 行为准则
-
-四项原则（Andrej Karpathy / multica-ai）：
-
-### 1. 先想清楚再写代码
-不假设。不藏困惑。呈现权衡。
-### 2. 简洁优先
-最少代码，不做推测。
-### 3. 精准修改
-只碰必须碰的，只清理自己造成的混乱。
-### 4. 目标驱动执行
-定义成功标准，循环直到验证通过。
-
-## 学习来源
-
-- **microsoft/markitdown** — 插件系统架构
-- **thedotmack/claude-mem** — 结构化记忆、双层存储、schema 版本、Hook 自动捕获
-- **multica-ai/andrej-karpathy-skills** — 四项行为准则
-- **Codex SDK** — SKILL.md + 文件系统
+## 安全说明
+- 所有敏感信息（API Key、Token、密码）禁止上传网络，仅限本地 .env 或环境变量读取
+- 项目 .soul/ 中的记忆数据可被项目内读取，全局身份仅写入 ~/.codex/soul/
+- 身份文件变更后需手动同步到各项目
