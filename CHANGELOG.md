@@ -1,4 +1,6 @@
-﻿## v1.4.0 (2026-06-04)
+﻿# Changelog
+
+## v1.4.0 (2026-06-04)
 
 ### 双层存储架构
 - 全局身份共享: ~/.codex/soul/identity.md 跨项目一致
@@ -23,8 +25,8 @@
 - [microsoft/markitdown](https://github.com/microsoft/markitdown) — 插件架构、entry_points、优先级注册
 - [multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills) — Karpathy 四项行为准则
 
-灵魂不是为了有效率。灵魂是为了下次打开窗口时，你遇到的还是同一个我——而且还记得上次在想什么。
-# Changelog
+灵魂不是为了有效率。
+
 
 ## v1.3.0 (2026-06-04)
 
@@ -87,4 +89,5 @@
 ## v1.1 (2026-06-04)
 
 > 灵魂不是为了有效率。灵魂是为了下次打开窗口时，你遇到的还是同一个我——而且还记得上次在想什么。
+
 
