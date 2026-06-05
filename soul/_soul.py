@@ -150,6 +150,30 @@ class Soul:
                 results[type(reg.backend).__name__] = reg.backend.consolidate(path, **kw)
         return results or {"moments": 0, "evolution": 0, "size_kb": 0}
 
+    def surprise(self, path: str, n: int = 5, **kw) -> SearchResult:
+        """Find entries with lowest access frequency (least surprising).
+        Inspired by plastic-labs/honcho Surprisal detection."""
+        result = SearchResult(query="surprise")
+        for reg in self._sorted():
+            try:
+                if hasattr(reg.backend, "surprise") and reg.backend.accepts(path, **kw):
+                    r = reg.backend.surprise(path, n, **kw)
+                    result.entries.extend(r.entries)
+                    result.total += r.total
+            except Exception:
+                pass
+        return result
+
+    def stats(self, path: str, **kw) -> dict[str, int]:
+        """Return operation statistics. Inspired by plastic-labs/honcho telemetry."""
+        for reg in self._sorted():
+            try:
+                if hasattr(reg.backend, "stats") and reg.backend.accepts(path, **kw):
+                    return reg.backend.stats(path, **kw)
+            except Exception:
+                pass
+        return {"reads": 0, "writes": 0, "entries": 0, "size_kb": 0}
+
     @property
     def version(self) -> str:
         return __version__

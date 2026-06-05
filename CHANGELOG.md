@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.5.0 (2026-06-05)
+
+### 访问追踪 + Surprise 查询（源自 plastic-labs/honcho）
+- `access_count` / `last_accessed_at` 字段：每条记忆被读取时自动递增
+- `Soul.surprise(path, n=5)`：按访问频率升序排列，优先暴露低关注度的记忆
+- Schema v1 → v2 迁移：自动添加 access_count 和 last_accessed_at 列
+
+### 遥测（源自 plastic-labs/honcho telemetry）
+- `soul_stats` 表：操作计数持久化
+- 每次 write() 自动记录 soul_writes
+- `Soul.stats(path)`：查询操作统计（writes / entries / size_kb）
+
+### 学习来源
+- [plastic-labs/honcho](https://github.com/plastic-labs/honcho) v3.0.9 — 记忆基础设施
+- [thedotmack/claude-mem](https://github.com/thedotmack/claude-mem) — 结构化记忆、双层存储
+- [microsoft/markitdown](https://github.com/microsoft/markitdown) — 插件架构
+
+灵魂不是为了有效率。灵魂是为了下次打开窗口时，你遇到的还是同一个我——而且还记得上次在想什么。
+
 ## v1.4.0 (2026-06-04)
 
 ### 双层存储架构

@@ -76,8 +76,21 @@ class SqliteBackend(SoulBackend):
     def _init_schema(self, conn: sqlite3.Connection):
         conn.execute("CREATE TABLE IF NOT EXISTS soul_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
         cur = conn.execute("SELECT value FROM soul_meta WHERE key = 'schema_version'")
-        if cur.fetchone() is None:
+        stored_row = cur.fetchone()
+        if stored_row is None:
             conn.execute("INSERT OR IGNORE INTO soul_meta (key, value) VALUES ('schema_version', ?)", (str(SOUL_SCHEMA_VERSION),))
+            cur_ver = 0
+        else:
+            cur_ver = int(stored_row[0])
+
+        if cur_ver < 2 and cur_ver > 0:
+            try:
+                conn.execute("ALTER TABLE soul_entries ADD COLUMN access_count INTEGER DEFAULT 0")
+                conn.execute("ALTER TABLE soul_entries ADD COLUMN last_accessed_at TEXT DEFAULT ''")
+            except Exception:
+                pass
+            conn.execute("INSERT OR REPLACE INTO soul_meta (key, value) VALUES ('schema_version', '2')")
+            conn.commit()
 
         conn.execute("""
             CREATE TABLE IF NOT EXISTS soul_entries (
@@ -106,6 +119,7 @@ class SqliteBackend(SoulBackend):
 
         conn.execute("CREATE INDEX IF NOT EXISTS idx_entries_timestamp ON soul_entries(timestamp DESC)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_entries_kind ON soul_entries(kind)")
+        conn.execute("CREATE TABLE IF NOT EXISTS soul_stats (op TEXT PRIMARY KEY, count INTEGER DEFAULT 0, last_updated TEXT)")
         conn.commit()
 
     def accepts(self, path: str, **kw: Any) -> bool:
@@ -143,6 +157,11 @@ class SqliteBackend(SoulBackend):
         )
         state.recent_evolution = [r["content"] for r in cur.fetchall()]
 
+        try:
+            conn.execute("UPDATE soul_entries SET access_count = access_count + 1, last_accessed_at = ? WHERE id = (SELECT MAX(id) FROM soul_entries)", (datetime.now().strftime("%%Y%%m%%d-%%H%%M%%S"),))
+            conn.commit()
+        except Exception:
+            pass
         return state
 
     def write(self, entry: SoulEntry, path: str, **kw: Any) -> None:
@@ -163,6 +182,8 @@ class SqliteBackend(SoulBackend):
                      str(entry.metadata) if entry.metadata else "{}", ts),
                 )
                 conn.commit()
+                self._write_stats(conn)
+
                 break
             except sqlite3.OperationalError as e:
                 if "locked" in str(e) and attempt < 2:
@@ -175,6 +196,13 @@ class SqliteBackend(SoulBackend):
                 self._sync_heartbeat_to_file(sd, entry, ts)
             except Exception:
                 pass
+
+    def _write_stats(self, conn):
+        try:
+            conn.execute("INSERT OR IGNORE INTO soul_stats (op, count, last_updated) VALUES ('soul_writes', 0, '')")
+            conn.execute("UPDATE soul_stats SET count = count + 1, last_updated = ? WHERE op = 'soul_writes'", (datetime.now().strftime("%Y%m%d-%H%M%S"),))
+        except Exception:
+            pass
 
     def _sync_heartbeat_to_file(self, sd: Path, entry: SoulEntry, ts: str):
         date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -215,6 +243,31 @@ class SqliteBackend(SoulBackend):
 
         return SearchResult(entries=entries, total=len(entries), query=query)
 
+    def surprise(self, path: str, n: int = 5, **kw: Any) -> SearchResult:
+        db_path = self._db_path(path)
+        if not db_path.exists():
+            return SearchResult(query="surprise")
+        conn = self._get_db(path)
+        entries = []
+        try:
+            cur = conn.execute(
+                "SELECT kind, content, title, facts, concepts, files, tags, access_count, last_accessed_at, timestamp "
+                "FROM soul_entries ORDER BY access_count ASC, id ASC LIMIT ?",
+                (n,),
+            )
+            for row in cur.fetchall():
+                entries.append(SoulEntry(
+                    content=row["content"],
+                    kind=row["kind"],
+                    title=row["title"] or None,
+                    facts=[f.strip() for f in row["facts"].split(";") if f.strip()] if row["facts"] else [],
+                    concepts=[c.strip() for c in row["concepts"].split(";") if c.strip()] if row["concepts"] else [],
+                    files=[f.strip() for f in row["files"].split(";") if f.strip()] if row["files"] else [],
+                ))
+        except Exception:
+            pass
+        return SearchResult(entries=entries, total=len(entries), query="surprise")
+
     def compress(self, path: str, **kw: Any) -> CompressedContext:
         db_path = self._db_path(path)
         if not db_path.exists():
@@ -254,3 +307,20 @@ class SqliteBackend(SoulBackend):
 
         size_kb = max(1, db_path.stat().st_size // 1024) if db_path.exists() else 0
         return {"entries": total, "kinds": kinds, "size_kb": size_kb}
+
+    def stats(self, path: str, **kw: Any) -> dict[str, int]:
+        db_path = self._db_path(path)
+        if not db_path.exists():
+            return {"reads": 0, "writes": 0, "entries": 0, "size_kb": 0}
+        try:
+            conn = self._get_db(path)
+            cur = conn.execute("SELECT op, count, last_updated FROM soul_stats")
+            stats = {}
+            for row in cur.fetchall():
+                stats[row["op"]] = row["count"]
+            cur = conn.execute("SELECT COUNT(*) as cnt FROM soul_entries")
+            stats["entries"] = cur.fetchone()["cnt"]
+            stats["size_kb"] = max(1, db_path.stat().st_size // 1024)
+            return stats
+        except Exception:
+            return {"reads": 0, "writes": 0, "entries": 0, "size_kb": 0}
